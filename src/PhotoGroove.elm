@@ -1,6 +1,7 @@
 module PhotoGroove exposing (main)
 
 import Array exposing (Array)
+import Random
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -19,7 +20,8 @@ type alias Model =
 
 type Msg 
   = ClickedPhoto String
-  | ClickedSuppriseMe 
+  | GotSelectedIndex Int
+  | ClickedSuppriseMe
   | ChooseSize ThumbnailSize
 
 
@@ -56,13 +58,13 @@ viewThumbnail selectedUrl thumb =
     []
 
 viewSizeChooser : ThumbnailSize -> ThumbnailSize -> Html Msg
-viewSizeChooser choosenSize size =
+viewSizeChooser chosenSize size =
   label []
     [ input 
         [ type_ "radio"
         , name "size" 
         , onClick (ChooseSize size)
-        , checked (choosenSize == size)
+        , checked (chosenSize == size)
         ] 
         []
     , text (sizeToString size)
@@ -94,6 +96,10 @@ initialModel =
 photoArray : Array Photo
 photoArray = Array.fromList initialModel.photos
 
+randomPhotoPicker : Random.Generator Int
+randomPhotoPicker =
+  Random.int 0 (Array.length photoArray - 1)  
+
 getPhotoUrl : Int -> String
 getPhotoUrl index =
   case Array.get index photoArray of  
@@ -104,21 +110,26 @@ getPhotoUrl index =
       ""
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    GotSelectedIndex index ->
+      ( { model | selectedUrl = getPhotoUrl index}, Cmd.none )
+
     ClickedPhoto url->
-      { model | selectedUrl = url }
+      ( { model | selectedUrl = url }, Cmd.none )
 
     ClickedSuppriseMe ->
-      { model | selectedUrl = "2.jpeg"}
+      ( model, Random.generate GotSelectedIndex randomPhotoPicker  )
 
     ChooseSize size->
-      { model | chosenSize = size }
+      ( { model | chosenSize = size }, Cmd.none )
 
+main : Program () Model Msg
 main =
-  Browser.sandbox
-    { init = initialModel
+  Browser.element
+    { init = \flags -> ( initialModel, Cmd.none )
     , view = view
     , update = update
+    , subscriptions = \model -> Sub.none
     }
