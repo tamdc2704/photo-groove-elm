@@ -133,20 +133,18 @@ update msg model =
     ChooseSize size->
       ( { model | chosenSize = size }, Cmd.none )
 
-    GotPhotos result -> 
-      case result of
-          Ok resStr ->
-            case String.split "," resStr of
-              (firstUrl :: _) as urls ->
-                let     
-                  photos =
-                    List.map (\url -> { url = url }) urls
-                in
-                  ({ model | status = Loaded photos firstUrl}, Cmd.none )
-              [] ->
-                ({ model | status = Errored "No photos found"}, Cmd.none )
+    GotPhotos (Ok resStr) -> 
+      case String.split "," resStr of
+        (firstUrl :: _) as urls ->
+          let     
+            photos =
+              List.map Photo urls
+          in
+            ({ model | status = Loaded photos firstUrl}, Cmd.none )
+        [] ->
+          ({ model | status = Errored "No photos found"}, Cmd.none )
                 
-          Err _->
+    GotPhotos (Err _)->
               ( { model | status = Errored "Server error!" }, Cmd.none )
 
 selectUrl : String -> Status -> Status
@@ -159,11 +157,18 @@ selectUrl url status =
     Errored _ ->
       status
 
+initialCmd : Cmd Msg
+initialCmd =
+  Http.get
+    { url = "http://elm-in-action.com/photos/list"
+    , expect = Http.expectString GotPhotos
+    }
+
 main : Program () Model Msg
 main =
   Browser.element
-    { init = \flags -> ( initialModel, Cmd.none )
+    { init = \flags -> ( initialModel, initialCmd )
     , view = view
     , update = update
-    , subscriptions = \model -> Sub.none
+    , subscriptions = \_ -> Sub.none
     }
