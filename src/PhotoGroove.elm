@@ -3,10 +3,11 @@ module PhotoGroove exposing (main)
 import Array exposing (Array)
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (checked, class, classList, id, name, src, type_, title)
+import Html.Attributes as Attr exposing (..)
 import Json.Decode exposing (Decoder, bool, int, list, string, succeed, decodeString)
 import Json.Decode.Pipeline exposing (optional, required)
 import Html.Events exposing (onClick)
+import Json.Encode as Encode
 import Random
 import Http
 
@@ -61,9 +62,14 @@ view model =
 viewLoaded : List Photo -> String -> ThumbnailSize -> List (Html Msg)
 viewLoaded photos selectedUrl chosenSize =
   [ h1 [] [ text "Photo Groove" ]
-  , button 
-    [ onClick ClickedSuppriseMe ] 
+  , button
+    [ onClick ClickedSuppriseMe ]
     [ text "Supprise me!"]
+  , div [ class "filters" ]
+      [ viewFilter "Hue" 0
+      , viewFilter "Ripple" 0
+      , viewFilter "Noise" 0
+      ]
   , h3 [] [ text "Thumbnail Size:" ]
   , div [ id "choose-size"]
     (List.map (viewSizeChooser chosenSize) [Small, Medium, Large])
@@ -89,9 +95,9 @@ viewThumbnail selectedUrl thumb =
 viewSizeChooser : ThumbnailSize -> ThumbnailSize -> Html Msg
 viewSizeChooser chosenSize size =
   label []
-    [ input 
+    [ input
         [ type_ "radio"
-        , name "size" 
+        , name "size"
         , onClick (ChooseSize size)
         , checked (chosenSize == size)
         ] 
@@ -146,13 +152,13 @@ update msg model =
     ChooseSize size->
       ( { model | chosenSize = size }, Cmd.none )
 
-    GotPhotos (Ok photos) -> 
+    GotPhotos (Ok photos) ->
       case photos of
         (first :: _) as urls ->
           ({ model | status = Loaded photos first.url}, Cmd.none )
         [] ->
           ({ model | status = Errored "No photos found"}, Cmd.none )
-                
+
     GotPhotos (Err _)->
       ( { model | status = Errored "Server error!" }, Cmd.none )
 
@@ -171,10 +177,6 @@ initialCmd =
   list photoDecoder
     |> Http.get "http://elm-in-action.com/photos/list.json"
     |> Http.send GotPhotos
-  -- Http.get
-  --   { url = "http://elm-in-action.com/photos/list"
-  --   , expect = Http.expectString GotPhotos
-  --   }
 
 main : Program () Model Msg
 main =
@@ -184,3 +186,20 @@ main =
     , update = update
     , subscriptions = \_ -> Sub.none
     }
+
+rangeSlider : List (Attribute msg) -> List (Html msg) -> Html msg
+rangeSlider attributes children =
+  node "range-slider" attributes children
+
+viewFilter : String -> Int -> Html Msg
+viewFilter name magnitude =
+  div [ class "filter-slider" ]
+      [ label [] [ text name ]
+      , rangeSlider
+        [ Attr.max "11"
+        , Attr.property "val" (Encode.int magnitude)
+        ]
+        []
+      , label [] [ text (String.fromInt magnitude) ]
+      ]
+

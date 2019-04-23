@@ -16,6 +16,17 @@
     #thumbnails { width: 440px; float: left;}
     h1 {font-family: Verdana; color: #60b5cc}
   </style>
+
+  <script>
+    class RangeSlider extends HTMLElement {
+      connectedCallback() {
+        const input = document.createElement('input')
+        this.appendChild(input)
+      }
+    }
+
+    window.customElements.define("range-slider", RangeSlider)
+  </script>
 </head>
 <body>
   <div id="app"></div>
