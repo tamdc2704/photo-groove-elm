@@ -32,10 +32,10 @@
           grid: false
         })
 
-        const rangeSlider = this
+        const rangeSliderNode = this
         jsr.addEventListener("update", function(elem, value) {
           const event = new CustomEvent("slide", {
-            detail: {userSildTo: value}
+            detail: {userSlidTo: value}
           })
           rangeSliderNode.dispatchEvent(event)
         })
