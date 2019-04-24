@@ -1,4 +1,4 @@
-module PhotoGroove exposing (main)
+port module PhotoGroove exposing (..)
 
 import Array exposing (Array)
 import Browser
@@ -27,6 +27,12 @@ photoDecoder =
     |> required "url" string
     |> required "size" int
     |> optional "title" string "(untitled)"
+
+port setFilters : FilterOptions -> Cmd msg
+type alias FilterOptions =
+  { url : String
+  , filters: List { name : String, amount : Int}
+  }
 
 type Status
   = Loading
@@ -134,14 +140,41 @@ initialModel =
   , noise = 5
   }
 
+applyFilter : Model -> (Model, Cmd Msg)
+applyFilter model =
+  case model.status of
+    Loaded photos selectedUrl ->
+      let
+        filters =
+          [ { name = "Hue", amount = model.hue}
+          , { name = "Ripple", amount = model.ripple}
+          , { name = "Noise", amount = model.noise}
+          ]
+
+        url =
+          urlPrefix ++ "large/" ++ selectedUrl
+
+        cmd =
+          setFilters { url = url, filters = filters }
+      in
+       ( model, Cmd.none )
+
+    Loading ->
+      ( model, Cmd.none)
+
+    Errored _ ->
+      ( model, Cmd.none)
+
+
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     GotRandomPhoto photo ->
-      ( { model | status = selectUrl photo.url model.status}, Cmd.none )
+      applyFilter { model | status = selectUrl photo.url model.status }
 
     ClickedPhoto url->
-      ( { model | status = selectUrl url model.status}, Cmd.none )
+      applyFilter { model | status = selectUrl url model.status }
 
     ClickedSuppriseMe ->
       case model.status of
