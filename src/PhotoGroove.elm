@@ -28,10 +28,12 @@ photoDecoder =
     |> required "size" int
     |> optional "title" string "(untitled)"
 
+port test : String -> Cmd msg
+
 port setFilters : FilterOptions -> Cmd msg
 type alias FilterOptions =
   { url : String
-  , filters: List { name : String, amount : Int}
+  , filters: List { name : String, amount : Float}
   }
 
 type Status
@@ -56,6 +58,7 @@ type Msg
   | SlidHue Int
   | SlidRipple Int
   | SlidNoise Int
+  | Test
 
 
 urlPrefix : String
@@ -89,11 +92,7 @@ viewLoaded photos selectedUrl model =
     (List.map (viewSizeChooser model.chosenSize) [Small, Medium, Large])
   , div [ id "thumbnails", class (sizeToString model.chosenSize) ]
     (List.map (viewThumbnail selectedUrl) photos)
-  , img
-    [ class "large"
-    , src (urlPrefix ++ "large/" ++ selectedUrl)
-    ]
-    []
+  , canvas [ id "main-canvas", class "large"] []
   ]
 
 viewThumbnail : String ->  Photo -> Html Msg
@@ -146,18 +145,16 @@ applyFilter model =
     Loaded photos selectedUrl ->
       let
         filters =
-          [ { name = "Hue", amount = model.hue}
-          , { name = "Ripple", amount = model.ripple}
-          , { name = "Noise", amount = model.noise}
+          [ { name = "Hue", amount = (toFloat model.hue) / 11}
+          , { name = "Ripple", amount = (toFloat model.ripple) / 11}
+          , { name = "Noise", amount = (toFloat model.noise) / 11}
           ]
 
         url =
           urlPrefix ++ "large/" ++ selectedUrl
 
-        cmd =
-          setFilters { url = url, filters = filters }
       in
-       ( model, Cmd.none )
+       ( model, setFilters { url = url, filters = filters } )
 
     Loading ->
       ( model, Cmd.none)
@@ -165,11 +162,12 @@ applyFilter model =
     Errored _ ->
       ( model, Cmd.none)
 
-
-
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Test ->
+      ( model, test "sida")
+
     GotRandomPhoto photo ->
       applyFilter { model | status = selectUrl photo.url model.status }
 
